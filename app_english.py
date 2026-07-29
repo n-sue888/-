@@ -2,7 +2,7 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
-st.title("🗣️ AI英会話パートナー (Gemini)")
+st.title("🗣️ AI英会話パートナー03 (Gemini)")
 
 api_key = st.sidebar.text_input("Gemini API Key", type="password")
 
