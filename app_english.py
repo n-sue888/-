@@ -1,18 +1,29 @@
 import streamlit as st
 from google import genai
+from google.genai import types
 
 st.title("🗣️ AI英会話パートナー (Gemini)")
 
 api_key = st.sidebar.text_input("Gemini API Key", type="password")
 
 if api_key:
-    client = genai.Client(api_key=api_key)
-
-    # 履歴の初期化
-    if "messages" not in st.session_state:
+    # 画面が再描画されてもチャットセッションを維持する
+    if "chat" not in st.session_state:
+        client = genai.Client(api_key=api_key)
+        config = types.GenerateContentConfig(
+            system_instruction=(
+                "You are a friendly English tutor. Chat with the user in English. "
+                "If the user makes a grammar mistake or awkward phrasing, "
+                "gently correct it at the end of your response in Japanese."
+            )
+        )
+        st.session_state.chat = client.chats.create(
+            model="gemini-2.0-flash",
+            config=config
+        )
         st.session_state.messages = []
 
-    # 過去の会話を表示
+    # 過去のメッセージを表示
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
@@ -24,22 +35,13 @@ if api_key:
         with st.chat_message("user"):
             st.write(user_input)
 
-        # AIの返答取得
+        # Geminiへ送信（chats 機能を使用）
         with st.chat_message("assistant"):
-            prompt = (
-                "You are a friendly English tutor. Chat with the user in English. "
-                "If the user makes a grammar mistake or awkward phrasing, "
-                "gently correct it at the end of your response in Japanese.\n\n"
-                f"User: {user_input}"
-            )
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt
-            )
+            response = st.session_state.chat.send_message(user_input)
             ai_reply = response.text
             st.write(ai_reply)
 
-        # AIの返答を保存
+        # AIの発言を保存
         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
 else:
     st.warning("サイドバーに Gemini API Key を入力してください。")
