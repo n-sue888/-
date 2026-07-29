@@ -7,23 +7,11 @@ st.title("🗣️ AI英会話パートナー (Gemini)")
 api_key = st.sidebar.text_input("Gemini API Key", type="password")
 
 if api_key:
-    # 画面が再描画されてもチャットセッションを維持する
-    if "chat" not in st.session_state:
-        client = genai.Client(api_key=api_key)
-        config = types.GenerateContentConfig(
-            system_instruction=(
-                "You are a friendly English tutor. Chat with the user in English. "
-                "If the user makes a grammar mistake or awkward phrasing, "
-                "gently correct it at the end of your response in Japanese."
-            )
-        )
-        st.session_state.chat = client.chats.create(
-            model="gemini-2.0-flash",
-            config=config
-        )
+    # 履歴の初期化
+    if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # 過去のメッセージを表示
+    # 過去の会話ログを表示
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
@@ -35,9 +23,34 @@ if api_key:
         with st.chat_message("user"):
             st.write(user_input)
 
-        # Geminiへ送信（chats 機能を使用）
+        # 実行のたびに fresh な client を作成
+        client = genai.Client(api_key=api_key)
+
+        # API送信用に履歴オブジェクトを組み立て
+        contents = []
+        for m in st.session_state.messages:
+            role = "user" if m["role"] == "user" else "model"
+            contents.append(
+                types.Content(
+                    role=role,
+                    parts=[types.Part.from_text(text=m["content"])]
+                )
+            )
+
+        # Geminiへ送信
         with st.chat_message("assistant"):
-            response = st.session_state.chat.send_message(user_input)
+            config = types.GenerateContentConfig(
+                system_instruction=(
+                    "You are a friendly English tutor. Chat with the user in English. "
+                    "If the user makes a grammar mistake or awkward phrasing, "
+                    "gently correct it at the end of your response in Japanese."
+                )
+            )
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=contents,
+                config=config
+            )
             ai_reply = response.text
             st.write(ai_reply)
 
