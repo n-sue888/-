@@ -20,11 +20,12 @@ if api_key:
 
     # ユーザー入力
     if user_input := st.chat_input("英語で話しかけてみよう（例: Hello! How are you?）"):
+        # UI表示用に user として追加
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.write(user_input)
 
-        # API送信用に履歴を Content オブジェクトに変換
+        # API送信用に履歴を Content オブジェクトに変換 (user / model に変換)
         contents = []
         for m in st.session_state.messages:
             role = "user" if m["role"] == "user" else "model"
@@ -54,6 +55,7 @@ if api_key:
             ai_reply = response.text
             st.write(ai_reply)
 
+        # UI表示用に assistant として追加
         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
 else:
     st.warning("サイドバーに Gemini API Key を入力してください。")
