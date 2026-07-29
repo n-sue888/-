@@ -3,25 +3,13 @@ from google import genai
 
 st.title("🗣️ AI英会話パートナー (Gemini)")
 
-# APIキーの設定
 api_key = st.sidebar.text_input("Gemini API Key", type="password")
 
 if api_key:
-    # Clientの初期化
     client = genai.Client(api_key=api_key)
 
     # チャット履歴の初期化
-    if "chat" not in st.session_state:
-        st.session_state.chat = client.chats.create(
-            model="gemini-2.5-flash",
-            config=dict(
-                system_instruction=(
-                    "You are a friendly English tutor. Chat with the user in English. "
-                    "If the user makes a grammar mistake or awkward phrasing, "
-                    "gently correct it at the end of your response in Japanese."
-                )
-            )
-        )
+    if "messages" not in st.session_state:
         st.session_state.messages = []
 
     # チャット履歴の描画
@@ -35,9 +23,25 @@ if api_key:
         with st.chat_message("user"):
             st.write(user_input)
 
+        # API送信用に履歴を変換
+        contents = []
+        for m in st.session_state.messages:
+            role = "user" if m["role"] == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": m["content"]}]})
+
         # Geminiへの送信と応答表示
         with st.chat_message("assistant"):
-            response = st.session_state.chat.send_message(user_input)
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=contents,
+                config={
+                    "system_instruction": (
+                        "You are a friendly English tutor. Chat with the user in English. "
+                        "If the user makes a grammar mistake or awkward phrasing, "
+                        "gently correct it at the end of your response in Japanese."
+                    )
+                }
+            )
             ai_reply = response.text
             st.write(ai_reply)
 
