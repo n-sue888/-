@@ -32,7 +32,7 @@ if api_key:
         # Geminiへの送信と応答表示
         with st.chat_message("assistant"):
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.0-flash",
                 contents=contents,
                 config={
                     "system_instruction": (
