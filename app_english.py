@@ -1,32 +1,33 @@
 import streamlit as st
-from openai import OpenAI
+from google import genai
 
-st.title("🗣️ AI英会話パートナー")
+st.title("🗣️ AI英会話パートナー (Gemini)")
 
-# APIキーの設定（StreamlitのSecrets機能や入力フォームから取得）
-api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+# APIキーの設定
+api_key = st.sidebar.text_input("Gemini API Key", type="password")
 
 if api_key:
-    client = OpenAI(api_key=api_key)
+    # Clientの初期化
+    client = genai.Client(api_key=api_key)
 
-    # 履歴の初期化
-    if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {
-                "role": "system",
-                "content": (
+    # チャット履歴の初期化
+    if "chat" not in st.session_state:
+        st.session_state.chat = client.chats.create(
+            model="gemini-2.5-flash",
+            config=dict(
+                system_instruction=(
                     "You are a friendly English tutor. Chat with the user in English. "
                     "If the user makes a grammar mistake or awkward phrasing, "
                     "gently correct it at the end of your response in Japanese."
                 )
-            }
-        ]
+            )
+        )
+        st.session_state.messages = []
 
     # チャット履歴の描画
     for msg in st.session_state.messages:
-        if msg["role"] != "system":
-            with st.chat_message(msg["role"]):
-                st.write(msg["content"])
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
 
     # ユーザー入力
     if user_input := st.chat_input("英語で話しかけてみよう（例: Hello! How are you?）"):
@@ -34,15 +35,12 @@ if api_key:
         with st.chat_message("user"):
             st.write(user_input)
 
-        # AIの応答生成
+        # Geminiへの送信と応答表示
         with st.chat_message("assistant"):
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=st.session_state.messages
-            )
-            ai_reply = response.choices[0].message.content
+            response = st.session_state.chat.send_message(user_input)
+            ai_reply = response.text
             st.write(ai_reply)
 
         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
 else:
-    st.warning("サイドバーに OpenAI API Key を入力してください。")
+    st.warning("サイドバーに Gemini API Key を入力してください。")
